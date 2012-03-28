@@ -15,9 +15,22 @@
  * Write a program to determine which chair the survivor is sitting in?
  *
  *
- * Below are two solutions one is a bullet prof brute force (which has a O(n)
- * complexity for both memory and time), the other one is a little bit more
- * intelligent (which is basically a O(1) for memory and time).
+ * Below are two solutions (written in JavaScript for node.js and modern Web
+ * browsers) one is a bullet prof brute force (which has a O(n) complexity for
+ * both memory and time), the other one is a little bit more intelligent (which
+ * is basically a O(1) for memory and time).
+ *
+ * Test results for a 100 chairs:
+ *     The survivor are sitting in a chair #72
+ *     brute force method: 5ms
+ *     The survivor are sitting in a chair #72
+ *     intelligent method: 0ms
+ *
+ * Test results for a 1,000,000 chairs:
+ *     The survivor are sitting in a chair #951424
+ *     brute force method: 106ms
+ *     The survivor are sitting in a chair #951424
+ *     intelligent method: 0ms
  *
  * @author irnc
  */
@@ -30,7 +43,7 @@
         // array representing circular queue of a chairs
         chairs = [],
         // number of players sitting on chairs
-        players = 1000000;
+        players = 100;
 
     // put the players on their chairs
     for (i = 1; i <= players; ++i) {
@@ -70,7 +83,7 @@
          * still occupied in a previous iteration and can only toggle when this
          * number is odd.
          */
-        return calculateSurvivor(chairs.filter(isSkipped), chairs.length % 2 ? !deleteHead : deleteHead);
+        return calculateSurvivor(chairs.filter(isSkipped), deleteHead ^ (chairs.length % 2));
     }
 
     console.time('brute force method');
@@ -87,52 +100,52 @@
      * @return integer
      */
     function determineSurvivor(numberOfChairs) {
-        var steps = [{
+        /* Determine iteration steps needed to find the survivor. For each step
+         * we need to know whenever head is deleted or not and a number of
+         * chairs before iteration begins. Each successive step will have half
+         * of a chairs from a previous step (really half plus minus one after
+         * step with odd number of chairs).
+         */
+        var previous, step, round,
+            steps = [{
                 deleteHead: true,
-                numberOfPersons: chairs.length
+                chairs: chairs.length
             }],
-            survivor = 1,
-            before = 0,
-            after = 0,
-            latestIndex = 0;
+            before = 0;
 
         for (i = 1; true; ++i) {
-            var prevStep = steps[i - 1],
-                rawNumber = prevStep.numberOfPersons / 2, // '2' is a pettern step
-                nextStep = {
-                    deleteHead: prevStep.numberOfPersons % 2 ? !prevStep.deleteHead : prevStep.deleteHead,
-                    numberOfPersons: prevStep.deleteHead ? Math.floor(rawNumber) : Math.ceil(rawNumber)
-                };
+            previous = steps[i - 1];
+            round = Math[previous.deleteHead ? 'floor' : 'ceil'];
+            step = {
+                deleteHead: previous.deleteHead ^ previous.chairs % 2,
+                chairs: round(previous.chairs / 2) // half from previous
+            };
 
-            steps.push(nextStep);
+            steps.push(step);
 
-            if (nextStep.numberOfPersons === 1) {
+            if (step.chairs === 1) {
                 break;
             }
         }
 
         steps.reverse();
 
+        /* Calculate the number of chairs before survivor's one, the survivor
+         * is sitting on the next one.
+         */
         for (i = 1; i < steps.length; ++i) {
             before = before * 2;
-            after = after * 2;
 
             if (steps[i].deleteHead) {
                 before += 1;
-
-                if (steps[i].numberOfPersons % 2 === 1) {
-                    after += 1;
-                }
-            } else if (steps[i].numberOfPersons > before + after + 1) {
-                after += 1;
             }
         }
 
         return before + 1;
     }
 
-    console.time('inteligent');
+    console.time('intelligent method');
     survivor = determineSurvivor(players);
     console.log('The survivor are sitting in a chair #' + survivor);
-    console.timeEnd('inteligent');
+    console.timeEnd('intelligent method');
 }());
